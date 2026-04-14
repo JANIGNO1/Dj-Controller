@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Connecting...</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{
+  background:#000;
+  color:#0ff;
+  font-family:sans-serif;
+  text-align:center;
+  padding-top:40%;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🚀 Connecting to DJ Official Network...</h2>
+<p>Please wait...</p>
+
+<script>
+const servers = [
+  "https://mrdanish.netlify.app/",
+  "https://mrdanish.vercel.app/"
+];
+
+const maintenance = "https://future-updates.vercel.app/";
+
+let redirected = false;
+
+function checkServer(url){
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(),3000);
+
+  fetch(url,{mode:"no-cors", signal:controller.signal})
+    .then(()=>{
+      if(!redirected){
+        redirected = true;
+        window.location.href = url;
+      }
+    })
+    .catch(()=>{
+      console.log(url + " failed");
+    })
+    .finally(()=>{
+      clearTimeout(timeout);
+    });
+}
+
+servers.forEach(checkServer);
+
+// If all fail → go maintenance
+setTimeout(()=>{
+  if(!redirected){
+    window.location.href = maintenance;
+  }
+},3500);
+</script>
+
+</body>
+</html>
