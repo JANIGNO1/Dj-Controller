@@ -20,15 +20,43 @@ body{
 <p>Please wait...</p>
 
 <script>
-const servers = [
-  "https://mrdanish.netlify.app/",
-  "https://mrdanish.vercel.app/"
-];
+// 🌐 Define ALL your websites here
+const sites = {
+  main: {
+    servers: [
+      "https://mrdanish.netlify.app/",
+      "https://mrdanish.vercel.app/"
+    ],
+    maintenance: "https://future-updates.vercel.app/"
+  },
 
-const maintenance = "https://future-updates.vercel.app/";
+  agency: {
+    servers: [
+      "https://agency-site.netlify.app/",
+      "https://agency-site.vercel.app/"
+    ],
+    maintenance: "https://future-updates.vercel.app/"
+  },
+
+  crush: {
+    servers: [
+      "https://crushlivee.netlify.app/",
+      "https://crushlivee.vercel.app/"
+    ],
+    maintenance: "https://future-updates.vercel.app/"
+  }
+};
+
+// 🔍 Get which site user wants
+const params = new URLSearchParams(window.location.search);
+const selected = params.get("site") || "main";
+
+// 🎯 Get config
+const config = sites[selected];
 
 let redirected = false;
 
+// 🚀 Check servers
 function checkServer(url){
   const controller = new AbortController();
   const timeout = setTimeout(()=>controller.abort(),3000);
@@ -40,20 +68,17 @@ function checkServer(url){
         window.location.href = url;
       }
     })
-    .catch(()=>{
-      console.log(url + " failed");
-    })
-    .finally(()=>{
-      clearTimeout(timeout);
-    });
+    .catch(()=>{})
+    .finally(()=>clearTimeout(timeout));
 }
 
-servers.forEach(checkServer);
+// Run checks
+config.servers.forEach(checkServer);
 
-// If all fail → go maintenance
+// ❌ If all fail → maintenance
 setTimeout(()=>{
   if(!redirected){
-    window.location.href = maintenance;
+    window.location.href = config.maintenance;
   }
 },3500);
 </script>
