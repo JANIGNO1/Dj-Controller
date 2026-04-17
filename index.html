@@ -94,37 +94,32 @@ function log(type, data){
 // ⏱️ SERVER TEST
 // ==============================
 async function testServer(server, timeout = 3000){
-  const start = performance.now();
+async function testServer(server, timeout = 4000){
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
 
   try {
-    await fetch(server.url, {
-      method: "HEAD",
-      mode: "no-cors",
+    const res = await fetch(server.url, {
+      method: "GET",
+      cache: "no-store",
       signal: controller.signal
     });
 
-    const latency = performance.now() - start;
+    const text = await res.text();
 
-    return {
-      url: server.url,
-      latency,
-      region: server.region,
-      success: true
-    };
+    // 🚨 Detect Netlify limit page
+    if(text.includes("Site not available") || text.includes("usage limits")){
+      return { url: server.url, success: false, latency: 9999 };
+    }
 
-  } catch (e) {
-    return {
-      url: server.url,
-      latency: 9999,
-      region: server.region,
-      success: false
-    };
+    return { url: server.url, success: true, latency: performance.now() };
+
+  } catch {
+    return { url: server.url, success: false, latency: 9999 };
   } finally {
     clearTimeout(timer);
   }
-}
+              }
 
 // ==============================
 // 🚀 SMART ROUTER
