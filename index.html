@@ -20,7 +20,8 @@ body{
 <p>Please wait...</p>
 
 <script>
-// 🌐 Define ALL your websites here
+<script>
+// 🌐 CONFIG
 const sites = {
   main: {
     servers: [
@@ -28,59 +29,49 @@ const sites = {
       "https://mrdanish.vercel.app/"
     ],
     maintenance: "https://future-updates.vercel.app/"
-  },
-
-  agency: {
-    servers: [
-      "https://agency-site.netlify.app/",
-      "https://agency-site.vercel.app/"
-    ],
-    maintenance: "https://future-updates.vercel.app/"
-  },
-
-  crush: {
-    servers: [
-      "https://crushlivee.netlify.app/",
-      "https://crushlivee.vercel.app/"
-    ],
-    maintenance: "https://future-updates.vercel.app/"
   }
 };
 
-// 🔍 Get which site user wants
+// 🔍 Get selected site
 const params = new URLSearchParams(window.location.search);
 const selected = params.get("site") || "main";
-
-// 🎯 Get config
 const config = sites[selected];
 
-let redirected = false;
-
-// 🚀 Check servers
-function checkServer(url){
+// ⏱️ Health check function (REAL check)
+async function checkServer(url, timeout = 3000) {
   const controller = new AbortController();
-  const timeout = setTimeout(()=>controller.abort(),3000);
+  const timer = setTimeout(() => controller.abort(), timeout);
 
-  fetch(url,{mode:"no-cors", signal:controller.signal})
-    .then(()=>{
-      if(!redirected){
-        redirected = true;
-        window.location.href = url;
-      }
-    })
-    .catch(()=>{})
-    .finally(()=>clearTimeout(timeout));
+  try {
+    // Use HEAD request for lightweight check
+    await fetch(url, {
+      method: "HEAD",
+      mode: "no-cors",
+      signal: controller.signal
+    });
+
+    clearTimeout(timer);
+    return true; // reachable
+  } catch (e) {
+    clearTimeout(timer);
+    return false; // failed
+  }
 }
 
-// Run checks
-config.servers.forEach(checkServer);
+// 🚀 Smart sequential routing
+(async function route() {
+  for (const server of config.servers) {
+    const isUp = await checkServer(server);
 
-// ❌ If all fail → maintenance
-setTimeout(()=>{
-  if(!redirected){
-    window.location.href = config.maintenance;
+    if (isUp) {
+      window.location.replace(server);
+      return;
+    }
   }
-},3500);
+
+  // ❌ All failed → maintenance
+  window.location.replace(config.maintenance);
+})();
 </script>
 
 </body>
