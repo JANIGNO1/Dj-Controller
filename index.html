@@ -1,15 +1,36 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Connecting...</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Connecting — DJ Official Network</title>
+
 <style>
 body{
-  background:#000;
-  color:#0ff;
-  font-family:sans-serif;
-  text-align:center;
-  padding-top:40%;
+  margin:0;
+  background: radial-gradient(circle at center, #050505, #000);
+  color:#00f7ff;
+  font-family: system-ui, sans-serif;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+  flex-direction:column;
+}
+
+h2{
+  font-size:22px;
+  animation: glow 1.5s infinite alternate;
+}
+
+p{
+  opacity:0.7;
+  font-size:14px;
+}
+
+@keyframes glow{
+  from { text-shadow:0 0 5px #00f7ff; }
+  to { text-shadow:0 0 20px #00f7ff; }
 }
 </style>
 </head>
@@ -17,60 +38,155 @@ body{
 <body>
 
 <h2>🚀 Connecting to DJ Official Network...</h2>
-<p>Please wait...</p>
+<p>Optimizing best server for you...</p>
 
 <script>
-<script>
-// 🌐 CONFIG
-const sites = {
-  main: {
-    servers: [
-      "https://mrdanish.netlify.app/",
-      "https://mrdanish.vercel.app/"
-    ],
-    maintenance: "https://future-updates.vercel.app/"
-  }
+// ==============================
+// 🌍 GLOBAL CONFIG
+// ==============================
+const NETWORK = {
+  main: [
+    { url: "https://mrdanish.netlify.app/", region: "global" },
+    { url: "https://mrdanish.vercel.app/", region: "asia" }
+  ],
+
+  crush: [
+    { url: "https://crushlivee.netlify.app/", region: "global" },
+    { url: "https://crushlivee.vercel.app/", region: "asia" }
+  ],
+
+  zero: [
+    { url: "https://zerolive.netlify.app/", region: "global" }
+  ],
+
+  dj: [
+    { url: "https://djofficial.netlify.app/", region: "global" }
+  ],
+
+  fallback: "https://future-updates.vercel.app/"
 };
 
-// 🔍 Get selected site
-const params = new URLSearchParams(window.location.search);
-const selected = params.get("site") || "main";
-const config = sites[selected];
+// ==============================
+// 🌍 REGION DETECTION
+// ==============================
+const userTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-// ⏱️ Health check function (REAL check)
-async function checkServer(url, timeout = 3000) {
+function getRegionPriority(){
+  if(userTZ.includes("Karachi") || userTZ.includes("Asia")) return "asia";
+  if(userTZ.includes("Europe")) return "eu";
+  if(userTZ.includes("America")) return "us";
+  return "global";
+}
+
+const userRegion = getRegionPriority();
+
+// ==============================
+// 📊 ANALYTICS (EXTENDABLE)
+// ==============================
+function log(type, data){
+  console.log("[DJ-LOG]", type, data);
+
+  // Future: send to Firebase / API
+  // fetch("/log", { method:"POST", body: JSON.stringify({type,data}) });
+}
+
+// ==============================
+// ⏱️ SERVER TEST
+// ==============================
+async function testServer(server, timeout = 3000){
+  const start = performance.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
 
   try {
-    // Use HEAD request for lightweight check
-    await fetch(url, {
+    await fetch(server.url, {
       method: "HEAD",
       mode: "no-cors",
       signal: controller.signal
     });
 
-    clearTimeout(timer);
-    return true; // reachable
+    const latency = performance.now() - start;
+
+    return {
+      url: server.url,
+      latency,
+      region: server.region,
+      success: true
+    };
+
   } catch (e) {
+    return {
+      url: server.url,
+      latency: 9999,
+      region: server.region,
+      success: false
+    };
+  } finally {
     clearTimeout(timer);
-    return false; // failed
   }
 }
 
-// 🚀 Smart sequential routing
-(async function route() {
-  for (const server of config.servers) {
-    const isUp = await checkServer(server);
+// ==============================
+// 🚀 SMART ROUTER
+// ==============================
+async function smartRoute(siteKey){
 
-    if (isUp) {
-      window.location.replace(server);
-      return;
-    }
+  const servers = NETWORK[siteKey];
+  if(!servers){
+    log("invalid_site", siteKey);
+    window.location.replace(NETWORK.fallback);
+    return;
   }
 
-  // ❌ All failed → maintenance
-  window.location.replace(config.maintenance);
+  log("start_routing", {site: siteKey, region: userRegion});
+
+  // 1️⃣ PRIORITIZE REGION
+  const prioritized = [
+    ...servers.filter(s => s.region === userRegion),
+    ...servers.filter(s => s.region !== userRegion)
+  ];
+
+  // 2️⃣ TEST ALL (PARALLEL)
+  const results = await Promise.all(
+    prioritized.map(server => testServer(server))
+  );
+
+  // 3️⃣ FILTER SUCCESS
+  const alive = results.filter(r => r.success);
+
+  if(alive.length > 0){
+
+    // 4️⃣ SORT BY LATENCY
+    alive.sort((a,b)=>a.latency - b.latency);
+
+    const best = alive[0];
+
+    log("server_selected", best);
+
+    window.location.replace(best.url);
+    return;
+  }
+
+  // ❌ ALL FAILED
+  log("fallback_triggered", {site: siteKey});
+  window.location.replace(NETWORK.fallback);
+}
+
+// ==============================
+// 🎯 ENTRY POINT
+// ==============================
+(function(){
+
+  const params = new URLSearchParams(window.location.search);
+  const site = params.get("site") || "main";
+
+  // Prevent redirect loop
+  if(window.location.hostname.includes("future-updates")){
+    return;
+  }
+
+  smartRoute(site);
+
 })();
 </script>
 
