@@ -2,6 +2,7 @@ export const config = { runtime: "edge" };
 
 const NETWORK = {
   main: [
+    "https://mrdanish.lovable.app/",
     "https://mrdanish.netlify.app/",
     "https://mrdanish.vercel.app/"
   ],
