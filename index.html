@@ -61,14 +61,14 @@ const NETWORK = {
   ],
 
   zero: [
-    { url: "https://zerolive.netlify.app/", region: "global" }
+    { url: "https://zerolive.netlify.app/", region: "global" },
     
     { url: "https://zerolive.vercel.app/", region: "global" }
 
   ],
 
   dj: [
-    { url: "https://djofficial.netlify.app/", region: "global" }
+    { url: "https://djofficial.netlify.app/", region: "global" },
 
     { url: "https://djofficial.vercel.app/", region: "global" }
   ],
@@ -115,10 +115,10 @@ async function testServer(server, timeout = 3000){
       signal: controller.signal
     });
 
-    // 🚫 Detect blocked Netlify manually (TEMP FIX)
-    if (server.url.includes("netlify")) {
-      return { url: server.url, success: false, latency: 9999 };
-    }
+    // 🚫 Skip Netlify ONLY when it is blocked
+if (server.url.includes("netlify") && window.location.hostname !== "mrdanish.lovable.app") {
+  return { url: server.url, success: false, latency: 9999 };
+}
 
     return { url: server.url, success: true, latency: performance.now() };
 
